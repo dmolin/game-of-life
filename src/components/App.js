@@ -10,12 +10,12 @@ const neighbours = [
   [1,-1], [1,0], [1,1]
 ];
 
-function getColor(cell) {
+function getColor(cell, xRay = false) {
   switch(cell) {
     case -1:
       return "pink";
     case 1:
-      return "#aaa";
+      return xRay ? "#aaa" : "#333";
     default:
       return undefined;
   }
@@ -36,6 +36,7 @@ class App extends React.Component {
     this.state = {
       grid: initGrid(size),
       running: false,
+      xRay: false,
       generation: 0
     }
 
@@ -55,17 +56,6 @@ class App extends React.Component {
     }, 0);
   }
 
-  purgeCells = (grid) => {
-    _.each(grid, (row, rowIdx) => {
-      _.each(grid[rowIdx], (col, colIdx) => {
-        if (grid[rowIdx][colIdx] === -1) {
-          grid = this.setCell(grid, rowIdx, colIdx, 0, false);
-        }
-      })
-    })
-    return grid;
-  }
-
   runSimulation = (single = false) => {
     const { grid, generation, running } = this.state;
     if (!single && running && !this.timer) return;  // we have been stopped
@@ -80,7 +70,7 @@ class App extends React.Component {
         if (cell) {
           // a live cell with less than 2 neighbours or more than 3 dies
           if (liveNeighbours < 2 || liveNeighbours > 3) {
-            newGrid = this.setCell(newGrid, rowIdx, colIdx, -1, false);
+            newGrid = this.setCell(newGrid, rowIdx, colIdx, 0, false);
           }
         } else if (liveNeighbours === 3) {
           // a dead cell with 3 neighbours comes to life
@@ -89,8 +79,6 @@ class App extends React.Component {
       });
     });
 
-    // clear cells scheduled for deletion
-    newGrid = this.purgeCells(newGrid);
     this.setState({
       grid: newGrid,
       generation: generation + 1
@@ -129,7 +117,6 @@ class App extends React.Component {
   }
 
   setCell = (grid, y, x, value, setState = true) => {
-    // console.log("toggling", y, x)
     const newGrid = [
       ..._.slice(grid, 0, y),
       [
@@ -139,7 +126,6 @@ class App extends React.Component {
       ],
       ..._.slice(grid, y + 1)
     ];
-    // console.log(newGrid)
     if (setState) {
       this.setState({ grid: newGrid });
     }
@@ -152,51 +138,33 @@ class App extends React.Component {
     this.setCell(grid, y, x, cell ? 0 : 1)
   }
 
-  renderButton = () => {
-    const { running } = this.state;
-    return (
-      <button
-        onClick={!running ? this.startSimulation : this.stopSimulation}
-      >
-        {running ? "Stop" : "Run"}
-      </button>
-    )
-  }
-
-  renderStep = () => {
-    return (
-      <button
-        onClick={this.stepForward}
-      >
-        Step
-      </button>
-    )
-  }
+  toggleXRay = () => this.setState({ xRay: !this.state.xRay })
 
   render () {
-    const { generation, running, grid } = this.state;
-
-    // build the grid
-    let timer;
-
+    const { generation, running, xRay, grid } = this.state;
     return (
       <div className="App">
-        <div>
-          {this.renderButton()}
-          {this.renderStep()}
-          <button
-            onClick={this.reset}
-          >
-            Reset
+        <div className="App-actions">
+          <button onClick={!running ? this.startSimulation : this.stopSimulation}>
+            {running ? "Stop" : "Run"}
           </button>
+          <button onClick={this.stepForward}>Step</button>
+          <button onClick={this.reset}>Reset</button>
+          <input
+            type="checkbox"
+            value="xray"
+            checked={xRay}
+            onClick={this.toggleXRay}
+          />X-Ray
           <p>
             Generation {generation}
           </p>
         </div>
         <div style={{
+          margin: "0 auto",
           display: "grid",
           gridTemplateColumns: `repeat(${size}, 1fr)`,
-          width: `${size * 20}px`
+          width: `${size * 22}px`
         }}>
           {grid.map((row, rowIdx) => (
             row.map((col, colIdx) => (
@@ -208,10 +176,10 @@ class App extends React.Component {
                   width: 20,
                   height: 20,
                   border: "1px solid #333",
-                  backgroundColor: getColor(grid[rowIdx][colIdx])
+                  backgroundColor: getColor(grid[rowIdx][colIdx], xRay)
                 }}
-              >
-                {grid[rowIdx][colIdx]}
+                >
+                {xRay ? grid[rowIdx][colIdx] : ""}
               </div>
             )
             )))}
