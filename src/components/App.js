@@ -1,7 +1,6 @@
 import React from 'react';
 import _ from 'lodash';
 
-import logo from './logo.svg';
 import './App.css';
 
 const neighbours = [
@@ -25,6 +24,15 @@ function initGrid(size) {
   return _.times(size, r => _.times(size, _.constant(0)))
 }
 
+function getCellAtMousePos (ev) {
+  if (!ev) return null;
+
+  const id = ev.target.getAttribute("data-id");
+  const coords = id.split("-").map(v => parseInt(v, 10));
+  if (coords.length !== 2) return null;
+  return { x: coords[1], y: coords[0] };
+}
+
 const size = 40;
 const cols = size;
 const rows = size;
@@ -37,7 +45,8 @@ class App extends React.Component {
       grid: initGrid(size),
       running: false,
       xRay: false,
-      generation: 0
+      generation: 0,
+      drawingAt: null
     }
 
     this.timer = null;
@@ -140,6 +149,31 @@ class App extends React.Component {
 
   toggleXRay = () => this.setState({ xRay: !this.state.xRay })
 
+  startDrawing = (ev) => {
+    ev.preventDefault();
+    this.setState({ drawingAt: getCellAtMousePos(ev) });
+  }
+
+  stopDrawing = (ev) => {
+    ev.preventDefault();
+    this.setState({ drawingAt: null });
+  }
+
+  maybeDraw = (ev) => {
+    ev.preventDefault();
+    const { drawingAt } = this.state;
+
+    const cell = getCellAtMousePos(ev);
+    if (!drawingAt || !cell) return;
+
+    // if we're still inside the same cell, ignore the event (to avoid toggle/untoggle while moving the mouse inside of a cell)
+    if (drawingAt.x === cell.x && drawingAt.y === cell.y) return;
+
+    // cell has changed: record the cell position and toggle the cell state
+    this.setState({ drawingAt: cell });
+    this.toggleCell(cell.y, cell.x);
+  }
+
   render () {
     const { generation, running, xRay, grid } = this.state;
     return (
@@ -150,22 +184,29 @@ class App extends React.Component {
           </button>
           <button onClick={this.stepForward}>Step</button>
           <button onClick={this.reset}>Reset</button>
-          <input
-            type="checkbox"
-            value="xray"
-            checked={xRay}
-            onClick={this.toggleXRay}
-          />X-Ray
+          <label>
+            <input
+              type="checkbox"
+              value="xray"
+              checked={xRay}
+              onChange={this.toggleXRay}
+            />X-Ray
+          </label>
           <p>
             Generation {generation}
           </p>
         </div>
-        <div style={{
-          margin: "0 auto",
-          display: "grid",
-          gridTemplateColumns: `repeat(${size}, 1fr)`,
-          width: `${size * 22}px`
-        }}>
+        <div
+          style={{
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: `repeat(${size}, 1fr)`,
+            width: `${size * 22}px`
+          }}
+          onMouseDown={this.startDrawing}
+          onMouseMove={this.maybeDraw}
+          onMouseUp={this.stopDrawing}
+        >
           {grid.map((row, rowIdx) => (
             row.map((col, colIdx) => (
               <div
