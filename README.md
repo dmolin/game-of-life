@@ -1,3 +1,5 @@
+VERY OLD and deprecated project. Kept only for historical reasons.
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ![Game screenshot](README/game-of-life.png)
